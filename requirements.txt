@@ -1,5 +1,6 @@
 docopt
 setuptools
 requests
-pyyaml
-hbmqtt
+pyyaml==5.4.1
+amqtt
+websockets>=9.0
