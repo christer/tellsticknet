@@ -8,11 +8,17 @@ def decode(packet):
     45.0
     """
 
-    if packet["model"] != 6701:
-        raise NotImplementedError(
-            "The Oregon model %i is not implemented." % packet["model"]
-        )
+    if int(packet["model"], 16) == 0x1a2d:
+        return decode1A2D(packet)
 
+    if int(packet["model"], 16) == 0xf824:
+        return decodeF824(packet)
+
+    raise NotImplementedError(
+        "The Oregon model %s is not implemented. Data was %s" % (str(packet["model"]), str(packet["data"]))
+    )
+
+def decode1A2D(packet):
     data = packet["data"]
     value = int(data)
     value >>= 8
@@ -59,5 +65,57 @@ def decode(packet):
     return dict(
         packet,
         sensorId=address,
+        data=dict(temp=temperature, humidity=humidity),
+    )
+
+
+def decodeF824(packet):
+    data = packet["data"]
+    value = int(data)
+
+    crcCheck = value & 0xF
+    value >>= 4
+
+    messageChecksum1 = value & 0xF
+    value >>= 4
+    messageChecksum2 = value & 0xF
+    value >>= 4
+    unknown = value & 0xF
+    value >>= 4
+    hum1 = value & 0xF
+    value >>= 4
+    hum2 = value & 0xF
+    value >>= 4
+    neg = value & 0xF
+    value >>= 4
+    temp1 = value & 0xF
+    value >>= 4
+    temp2 = value & 0xF
+    value >>= 4
+    temp3 = value & 0xF
+    value >>= 4
+    battery = value & 0xF  # PROBABLY battery
+    value >>= 4
+    rollingcode = ((value >> 4) & 0xF) + (value & 0xF)
+    checksum = ((value >> 4) & 0xF) + (value & 0xF)
+    value >>= 8
+    channel = value & 0xF
+    checksum += unknown + hum1 + hum2 + neg + temp1 + temp2 + temp3 + battery + channel + 0xF + 0x8 + 0x2 + 0x4
+
+    if ((checksum >> 4) & 0xF) != messageChecksum1 or (checksum & 0xF) != messageChecksum2:
+        raise ValueError(
+            "The checksum in the Oregon packet does not match "
+            "the caluclated one!"
+        )
+
+    temperature = ((temp1 * 100) + (temp2 * 10) + temp3)/10.0
+    if neg:
+        temperature = -temperature
+    
+    humidity = (hum1 * 10.0) + hum2
+
+    return dict(
+        packet,
+        sensorId=rollingcode,
         data=dict(temp=temperature, humidity=humidity),
     )
