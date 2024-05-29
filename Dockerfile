@@ -1,10 +1,11 @@
-FROM docker.io/python:3.7-slim-stretch
+FROM docker.io/python:3.12-slim-bookworm
+# FROM docker.io/python:3.7-slim-stretch
 
 WORKDIR /app
 
 RUN set -x \
 && apt-get update \
-&& apt-get -y --no-install-recommends install dumb-init libsodium18 \
+&& apt-get -y --no-install-recommends install dumb-init libsodium23 \
 && apt-get -y autoremove \
 && apt-get -y clean \
 && rm -rf /var/lib/apt/lists/* \
