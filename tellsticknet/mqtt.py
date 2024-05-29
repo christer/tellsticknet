@@ -427,7 +427,7 @@ class Device:
 
     async def subscribe_to(self, topic):
         _LOGGER.debug("Subscribing to %s", topic)
-        from hbmqtt.mqtt.constants import QOS_1
+        from amqtt.mqtt.constants import QOS_1
 
         await self.mqtt.subscribe([(topic, QOS_1)])
         _LOGGER.debug("Subscribed to %s", topic)
@@ -488,7 +488,7 @@ class Device:
 async def run(discover, config):
     _LOGGER.debug("Found %d devices in config", len(config))
 
-    logging.getLogger("hbmqtt.client.plugins.packet_logger_plugin").setLevel(
+    logging.getLogger("amqtt.client.plugins.packet_logger_plugin").setLevel(
         logging.WARNING
     )
 
