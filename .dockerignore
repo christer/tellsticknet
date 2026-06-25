@@ -1,6 +1,6 @@
 *
-!requirements.txt
+!pyproject.toml
+!uv.lock
 !tellsticknet
-!script/tellsticknet
 **/__pycache__
 **/*~

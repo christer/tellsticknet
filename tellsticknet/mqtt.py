@@ -1,19 +1,30 @@
 #!/usr/bin/env python3
-# -*- mode: python; coding: utf-8 -*-
 
+import asyncio
 import logging
+import string
 from json import dumps as dump_json
 from os import environ as env
-from os.path import join, expanduser
-from time import time
-import tellsticknet.const as const
+from os.path import expanduser, join
 from platform import node as hostname
-import string
-from amqtt.client import MQTTClient, ConnectException, ClientException
-import asyncio
+from time import time
+from urllib.parse import urlparse
+
+import gmqtt
+
+import tellsticknet.const as const
 
 
-# FIXME: A command can correspond to multiple entities (e.g. switches/lights)
+def parse_mqtt_url(url):
+    """Parse an MQTT URL into (host, port, username, password, ssl)."""
+    parsed = urlparse(url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or (8883 if parsed.scheme in ("mqtts", "wss") else 1883)
+    username = parsed.username
+    password = parsed.password
+    ssl = parsed.scheme in ("mqtts", "wss")
+    return host, port, username, password, ssl
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -111,9 +122,7 @@ def get_mqtt_url():
                 "mosquitto_pub",
             )
         ) as f:
-            config = dict(
-                line.replace("-", "").split() for line in f.read().splitlines()
-            )
+            config = dict(line.replace("-", "").split() for line in f.read().splitlines())
             username = config["username"]
             password = config["pw"]
             host = config["h"]
@@ -125,16 +134,14 @@ def get_mqtt_url():
         return None
 
 
-def whitelisted(
-    s, whitelist="_-" + string.ascii_letters + string.digits, substitute="_"
-):
+def whitelisted(s, whitelist="_-" + string.ascii_letters + string.digits, substitute="_"):
     """
     >>> whitelisted("ab/cd#ef(gh")
     'ab_cd_ef_gh'
 
     >>> whitelisted("ab/cd#ef(gh", substitute='')
     'abcdefgh'
-   """
+    """
     return "".join(c if c in whitelist else substitute for c in s)
 
 
@@ -149,7 +156,6 @@ def make_topic(*levels):
 
 
 class Device:
-
     subscriptions = {}
 
     def __init__(self, entity, mqtt, controller, sensor=None):
@@ -189,9 +195,7 @@ class Device:
             if packet.get("group"):
                 properties = (prop for prop in properties if prop != "unit")
 
-            return all(
-                cmd.get(prop) == packet.get(prop) for prop in properties
-            )
+            return all(cmd.get(prop) == packet.get(prop) for prop in properties)
 
         return any(is_recipient(command) for command in self.commands)
 
@@ -214,9 +218,7 @@ class Device:
             await self.publish_state(payload)  # republish as new state
             self.execute(method)
         elif topic == self.brightness_command_topic:
-            await self.publish(
-                self.brightness_state_topic, payload, retain=True
-            )
+            await self.publish(self.brightness_state_topic, payload, retain=True)
             self.execute(const.DIM, param=payload)
         else:
             _LOGGER.warning("Unknown topic: %s", topic)
@@ -241,19 +243,13 @@ class Device:
                 await self.publish_state(STATE_OFF)
 
         elif self.sensor is not None:
-            state = next(
-                item["value"]
-                for item in packet["data"]
-                if item["name"] == self.sensor
-            )
+            state = next(item["value"] for item in packet["data"] if item["name"] == self.sensor)
             await self.publish_state(state)
         else:
             # Delegate to aggregate of sensors
             if not self.sensors:
                 self.sensors = {
-                    item["name"]: Device(
-                        self.entity, self.mqtt, self.controller, item["name"]
-                    )
+                    item["name"]: Device(self.entity, self.mqtt, self.controller, item["name"])
                     for item in packet["data"]
                 }
             for sensor in self.sensors.values():
@@ -318,9 +314,7 @@ class Device:
 
     @property
     def is_dimmer(self):
-        return self.entity.get("dimmer", False) or "dimmer" in self.entity.get(
-            "model", ""
-        )
+        return self.entity.get("dimmer", False) or "dimmer" in self.entity.get("model", "")
 
     @property
     def unique_id(self):
@@ -352,7 +346,7 @@ class Device:
     @property
     def discovery_topic(self):
         """e.g. homeassistant/sensor/tellsticknet_ABC123/
-                command_light_bedroom/config"""
+        command_light_bedroom/config"""
         return make_topic(
             DISCOVERY_PREFIX,
             self.component,
@@ -417,19 +411,18 @@ class Device:
         # FIXME: Missing components: cover etc
         return res
 
-    async def publish(self, topic, payload, retain=False):
-        payload = (
-            dump_json(payload) if isinstance(payload, dict) else str(payload)
-        )
+    async def publish(self, topic, payload, retain=False, message_expiry_interval=None):
+        payload = dump_json(payload) if isinstance(payload, dict) else str(payload)
         _LOGGER.debug(f"Publishing on {topic}: {payload}")
-        await self.mqtt.publish(topic, payload.encode("utf-8"), retain=retain)
+        kwargs = {}
+        if message_expiry_interval is not None:
+            kwargs["message_expiry_interval"] = message_expiry_interval
+        await self.mqtt.publish(topic, payload.encode("utf-8"), retain=retain, **kwargs)
         _LOGGER.debug(f"Published on {topic}: {payload}")
 
     async def subscribe_to(self, topic):
         _LOGGER.debug("Subscribing to %s", topic)
-        from amqtt.mqtt.constants import QOS_1
-
-        await self.mqtt.subscribe([(topic, QOS_1)])
+        await self.mqtt.subscribe(topic, qos=1)
         _LOGGER.debug("Subscribed to %s", topic)
         Device.subscriptions[topic] = self
 
@@ -444,15 +437,13 @@ class Device:
 
     async def publish_discovery(self, items=None):
         await self.publish(
-            self.discovery_topic, self.discovery_payload, retain=True
+            self.discovery_topic, self.discovery_payload, retain=True, message_expiry_interval=86400
         )
         await self.publish_availability()
         await self.subscribe()
 
     async def publish_availability(self):
-        await self.publish(
-            self.availability_topic, STATE_ONLINE, retain=self.is_command
-        )
+        await self.publish(self.availability_topic, STATE_ONLINE, retain=self.is_command)
 
     def maybe_invert(self, state):
         if self.invert and state in [STATE_ON, STATE_OFF]:
@@ -488,58 +479,50 @@ class Device:
 async def run(discover, config):
     _LOGGER.debug("Found %d devices in config", len(config))
 
-    logging.getLogger("amqtt.client.plugins.packet_logger_plugin").setLevel(
-        logging.WARNING
-    )
-
-    client_id = "tellsticknet_{hostname}_{time}".format(
-        hostname=hostname(), time=time()
-    )
-
+    client_id = f"tellsticknet_{hostname()}_{time()}"
     _LOGGER.debug("Client id is %s", client_id)
 
-    mqtt = MQTTClient(client_id=client_id)
+    mqtt = gmqtt.Client(client_id)
 
     mqtt_url = get_mqtt_url()
+    host, port, username, password, ssl = parse_mqtt_url(mqtt_url)
 
-    devices_setup = asyncio.Event()
+    if username:
+        mqtt.set_auth_credentials(username, password)
 
-    async def mqtt_task():
-        try:
-            _LOGGER.info("Connecting")
-            await mqtt.connect(uri=mqtt_url, cleansession=False)
-            _LOGGER.info("Connected to MQTT server")
-        except ConnectException as e:
-            exit("Could not connect to MQTT server: %s" % e)
+    connected = asyncio.Event()
 
-        await devices_setup.wait()
-        while True:
-            _LOGGER.debug("Waiting for MQTT messages")
-            try:
-                message = await mqtt.deliver_message()
-                packet = message.publish_packet
-                topic = packet.variable_header.topic_name
-                payload = packet.payload.data.decode("ascii")
-                _LOGGER.debug("got message on %s: %s", topic, payload)
-                await Device.route_message(topic, payload)
-            except ClientException as e:
-                _LOGGER.error("MQTT Client exception: %s", e)
+    @mqtt.on_connect
+    def _(client, flags, result, properties):
+        _LOGGER.info("Connected to MQTT server")
+        connected.set()
+
+    @mqtt.on_message
+    async def _(client, topic, payload, qos, properties):
+        payload = payload.decode("ascii")
+        _LOGGER.debug("Got message on %s: %s", topic, payload)
+        await Device.route_message(topic, payload)
 
     loop = asyncio.get_event_loop()
+
+    async def mqtt_task():
+        _LOGGER.info("Connecting")
+        try:
+            await mqtt.connect(host, port, ssl=ssl, version=5)
+        except gmqtt.MQTTConnectError as e:
+            exit(f"Could not connect to MQTT server: {e}")
+
     loop.create_task(mqtt_task())
     controller = await discover()
 
     if not controller:
-        await mqtt._connected_state.wait()
+        await connected.wait()
         await mqtt.disconnect()
         exit("No tellstick device found")
 
     _LOGGER.info("Controller found")
-    await mqtt._connected_state.wait()
+    await connected.wait()
     _LOGGER.info("Connected to MQTT server")
-
-    # FIXME: Make it possible to have more components with same component
-    # type but different device_class_etc
 
     _LOGGER.debug("Setting up devices")
     devices = [
@@ -549,24 +532,13 @@ async def run(discover, config):
         in (controller.ip_address, controller.mac_address)
     ]
     _LOGGER.debug("Configured %d devices", len(devices))
-    devices_setup.set()
 
-    # Commands are visible directly,
-    # sensors only when data becomes available
-    await asyncio.gather(
-        *[
-            device.publish_discovery()
-            for device in devices
-            if device.is_command
-        ]
-    )
+    await asyncio.gather(*[device.publish_discovery() for device in devices if device.is_command])
 
     _LOGGER.info("Waiting for packets")
     async for packet in controller.events():
-        if not packet:  # timeout
+        if not packet:
             continue
         received = [await d.receive_local(packet) for d in devices]
         if not any(received):
             _LOGGER.warning("Skipped packet %s", packet)
-        # FIXME: Mark as unavailable if not heard from in time t (24 hours?)
-        # FIXME: Use config expire in config (like 6 hours?)

@@ -6,7 +6,7 @@ def decode(packet):
     2.6
     """
     data = packet["data"]
-    data = "%010x" % int(data)
+    data = f"{int(data):010x}"
     data = data[:-2]
     humidity = int(data[-2:], 16)
 
@@ -29,6 +29,4 @@ def decode(packet):
             data=dict(humidity=humidity, temp=temp),
         )
     else:
-        return dict(
-            packet, model="temperature", sensorId=id, data=dict(temp=temp)
-        )
+        return dict(packet, model="temperature", sensorId=id, data=dict(temp=temp))

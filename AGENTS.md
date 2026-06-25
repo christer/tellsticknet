@@ -10,14 +10,14 @@ Single-package Python CLI/library (`tellsticknet`) for Tellstick Net devices. As
 | `make check` | `lint && test` (sequential via `script/check`) |
 | `make lint` | `tox -e lint` |
 | `make test` | `tox` |
-| `make black` / `make format` | **runs `white`, not `black`** — the formatter is `white` |
+| `make format` | `ruff format tellsticknet setup.py pyproject.toml` |
 | `make release` | `git diff-index --quiet HEAD -- && make check && bumpversion patch && git push --tags && git push && make pypi` |
-| `tox -e lint` | `black --version; white --check tellsticknet setup.py; pylint -E tellsticknet setup.py; flake8 ...; yamllint ...` |
+| `tox -e lint` | `ruff check ... && ruff format --check ...` |
 | `tox` | runs `py.test tellsticknet` with `--doctest-modules` (doctests in source are tested) |
 
 ## Testing quirks
 - Tests live in `tellsticknet/test_protocols.py` (pytest) **and** as doctests in `tellsticknet/protocol.py` — both run under `tox`.
-- `tox.ini` only defines env `py37`; CI runs on Python 3.7 (Xenial). Pipfile declares 3.12.
+- `tox.ini` only defines env `py314`; CI runs on Python 3.14.
 
 ## Package structure
 - `tellsticknet/__main__.py` — CLI entrypoint. Commands: `discover`, `listen`, `send`, `mqtt`, `mock`, `parse`, `devices`, `sensors`.
@@ -25,10 +25,9 @@ Single-package Python CLI/library (`tellsticknet`) for Tellstick Net devices. As
 - Entry point: `tellsticknet=tellsticknet.__main__:app_main` (set in `setup.py`).
 
 ## Gotchas
-- `script/tellsticknet` hardcodes `python3.7` — if you don't have 3.7, use `python3 -m tellsticknet` directly.
 - Config is YAML (`tellsticknet.conf` / `.tellsticknet.conf`) looked up in CWD, `$HOME`, `$XDG_CONFIG_HOME` (see `tellsticknet-sample.conf`).
 - Docker entrypoint is `python3 -m tellsticknet mqtt`; exposes UDP ports 30303 and 42314.
-- Uses `pipenv` for dev; `requirements.txt` for runtime install.
+- Uses `uv` for dependency management (`uv.lock`). Dependencies declared in `pyproject.toml` `[project]`.
 - Protocol implementations adapted from [telldus-core](https://github.com/telldus/telldus/tree/master/telldus-core/service). See `tellsticknet/test_protocols.py` for exact test vectors.
 
 ## Task Management Rules

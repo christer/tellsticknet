@@ -11,15 +11,16 @@ def decode(packet):
     model = packet["model"]
     model = int(model, 16) if isinstance(model, str) else int(model)
 
-    if model == 0x1a2d:
+    if model == 0x1A2D:
         return decode1A2D(packet)
 
-    if model == 0xf824:
+    if model == 0xF824:
         return decodeF824(packet)
 
     raise NotImplementedError(
-        "The Oregon model %s is not implemented. Data was %s" % (str(packet["model"]), str(packet["data"]))
+        f"The Oregon model {packet['model']} is not implemented. Data was {packet['data']}"
     )
+
 
 def decode1A2D(packet):
     data = packet["data"]
@@ -54,10 +55,7 @@ def decode1A2D(packet):
     checksum += 0x1 + 0xA + 0x2 + 0xD - 0xA
 
     if checksum != checksum1:
-        raise ValueError(
-            "The checksum in the Oregon packet does not match "
-            "the caluclated one!"
-        )
+        raise ValueError("The checksum in the Oregon packet does not match the caluclated one!")
 
     temperature = ((temp1 * 100) + (temp2 * 10) + temp3) / 10.0
     if neg:
@@ -76,7 +74,6 @@ def decodeF824(packet):
     data = packet["data"]
     value = int(data)
 
-    crcCheck = value & 0xF
     value >>= 4
 
     messageChecksum1 = value & 0xF
@@ -103,18 +100,29 @@ def decodeF824(packet):
     checksum = ((value >> 4) & 0xF) + (value & 0xF)
     value >>= 8
     channel = value & 0xF
-    checksum += unknown + hum1 + hum2 + neg + temp1 + temp2 + temp3 + battery + channel + 0xF + 0x8 + 0x2 + 0x4
+    checksum += (
+        unknown
+        + hum1
+        + hum2
+        + neg
+        + temp1
+        + temp2
+        + temp3
+        + battery
+        + channel
+        + 0xF
+        + 0x8
+        + 0x2
+        + 0x4
+    )
 
     if ((checksum >> 4) & 0xF) != messageChecksum1 or (checksum & 0xF) != messageChecksum2:
-        raise ValueError(
-            "The checksum in the Oregon packet does not match "
-            "the caluclated one!"
-        )
+        raise ValueError("The checksum in the Oregon packet does not match the caluclated one!")
 
-    temperature = ((temp1 * 100) + (temp2 * 10) + temp3)/10.0
+    temperature = ((temp1 * 100) + (temp2 * 10) + temp3) / 10.0
     if neg:
         temperature = -temperature
-    
+
     humidity = (hum1 * 10.0) + hum2
 
     return dict(

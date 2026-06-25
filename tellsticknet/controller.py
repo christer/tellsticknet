@@ -29,18 +29,11 @@ async def discover(ip=None, discover_all=False):
     def make_controller(discovery_data):
         return Controller(*discovery_data[:2])
 
-    discoverer = discovery.discover(
-        ip=ip, discover_all=discover_all
-    )  # pylint: disable=not-an-iterable
+    discoverer = discovery.discover(ip=ip, discover_all=discover_all)  # pylint: disable=not-an-iterable
     if discover_all:
-        return (
-            make_controller(discovery_data)
-            async for discovery_data in discoverer
-        )  # pylint: disable=not-an-iterable
+        return (make_controller(discovery_data) async for discovery_data in discoverer)  # pylint: disable=not-an-iterable
     try:
-        return make_controller(
-            await discoverer.__anext__()
-        )  # pylint: disable=no-member
+        return make_controller(await discoverer.__anext__())  # pylint: disable=no-member
     except StopAsyncIteration:
         return None
 
@@ -70,9 +63,7 @@ class Controller:
         https://github.com/telldus/tellstick-net/blob/master/
             firmware/tellsticknet.c"""
         packet = encode_packet(command, **args)
-        _LOGGER.debug(
-            "Sending packet to controller %s <%s>", self._address, packet
-        )
+        _LOGGER.debug("Sending packet to controller %s <%s>", self._address, packet)
         res = await sock_sendto(sock, packet, self._address)
         if res != len(packet):
             raise OSError("Could not send all of packet")
@@ -117,7 +108,6 @@ class Controller:
 
     async def events(self):
         async for packet in self.packets():  # pylint: disable=not-an-iterable
-
             if not packet:
                 yield None
                 continue
@@ -125,9 +115,7 @@ class Controller:
             try:
                 packet = decode_packet(packet)
             except NotImplementedError:
-                _LOGGER.warning(
-                    "failed to decode packet, skipping: %s", packet
-                )
+                _LOGGER.warning("failed to decode packet, skipping: %s", packet)
                 continue
 
             if not packet:
@@ -141,8 +129,8 @@ class Controller:
 
     async def _execute(self, device, method, param):
         """arctech on/off implemented in firmware here:
-         https://github.com/telldus/tellstick-net/blob/master/firmware/tellsticknet.c#L58
-         https://github.com/telldus/tellstick-net/blob/master/firmware/transmit_arctech.c
+        https://github.com/telldus/tellstick-net/blob/master/firmware/tellsticknet.c#L58
+        https://github.com/telldus/tellstick-net/blob/master/firmware/transmit_arctech.c
         """
 
         packet = encode(**device, method=method, param=param)
@@ -166,9 +154,7 @@ class Controller:
                 _LOGGER.debug("Sending time %d of %d", i + 1, repeat)
                 await self._execute(device, method, param)
                 if i < repeat - 1:
-                    _LOGGER.debug(
-                        "Waiting %d seconds", COMMAND_REPEAT_DELAY.seconds
-                    )
+                    _LOGGER.debug("Waiting %d seconds", COMMAND_REPEAT_DELAY.seconds)
                 await asyncio.sleep(COMMAND_REPEAT_DELAY.seconds if i else 0)
 
         loop = asyncio.get_event_loop()

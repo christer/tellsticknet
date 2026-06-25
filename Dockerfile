@@ -1,27 +1,26 @@
-FROM docker.io/python:3.9-slim-bookworm
-# FROM docker.io/python:3.7-slim-stretch
+FROM docker.io/python:3.14-slim-bookworm
 
 WORKDIR /app
 
 RUN set -x \
-&& apt-get update \
-&& apt-get -y --no-install-recommends install dumb-init libsodium23 \
-&& apt-get -y autoremove \
-&& apt-get -y clean \
-&& rm -rf /var/lib/apt/lists/* \
-&& rm -rf /tmp/* \
-&& rm -rf /var/tmp/* \
-&& useradd -M --home-dir /app tellstick \
-  ;
+    && apt-get update \
+    && apt-get -y --no-install-recommends install dumb-init libsodium23 \
+    && apt-get -y autoremove \
+    && apt-get -y clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && useradd -M --home-dir /app tellstick
 
-COPY requirements.txt ./
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-RUN pip --no-cache-dir --trusted-host pypi.org install --upgrade -r requirements.txt pip coloredlogs libnacl \
-  && rm requirements.txt \
-  ;
+COPY pyproject.toml uv.lock ./
 
-USER tellstick
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY . ./
+
+RUN uv sync --frozen --no-dev --no-editable
+
+USER tellstick
 
 ENTRYPOINT ["dumb-init", "--", "python3", "-m", "tellsticknet", "mqtt"]

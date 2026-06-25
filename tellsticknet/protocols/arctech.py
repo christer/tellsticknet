@@ -14,9 +14,7 @@ def decode(packet):
     We must copy packet since "data" key will be popped by
     protocol implementations
     """
-    return (
-        nexa.decode(packet) or waveman.decode(packet) or sartano.decode(packet)
-    )
+    return nexa.decode(packet) or waveman.decode(packet) or sartano.decode(packet)
 
 
 def encode(model, house, unit, method, param, **kwargs):

@@ -1,3 +1,43 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "tellsticknet"
+version = "0.1.2"
+description = "Listen for UDP sensor broadcasts from a Tellstick"
+readme = "README.md"
+requires-python = ">=3.14"
+license = { text = "?" }
+authors = [
+    { name = "Erik Eriksson", email = "error.errorsson@gmail.com" },
+]
+keywords = ["tellstick"]
+dependencies = [
+    "docopt",
+    "requests",
+    "pyyaml>=6.0",
+    "gmqtt",
+    "websockets",
+    "coloredlogs",
+    "libnacl",
+]
+
+[project.urls]
+Homepage = "https://github.com/molobrakos/tellsticknet"
+
+[project.scripts]
+tellsticknet = "tellsticknet.__main__:app_main"
+
+[dependency-groups]
+lint = ["ruff"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "UP"]
+
+[tool.ruff.format]
+quote-style = "preserve"

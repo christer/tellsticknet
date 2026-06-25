@@ -15,11 +15,8 @@ setup(
     keywords="tellstick",
     packages=find_packages(),
     long_description=(open("README.md").read() if exists("README.md") else ""),
-    install_requires=list(open("requirements.txt").read().strip().split("\n")),
     scripts=[],
     extras_require={},
-    entry_points={
-        "console_scripts": ["tellsticknet=tellsticknet.__main__:app_main"]
-    },
+    python_requires=">=3.14",
     zip_safe=False,
 )

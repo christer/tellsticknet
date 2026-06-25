@@ -58,7 +58,7 @@ def parse_discovery_packet(data):
 
     """
     entry = data.decode("ascii").split(":")
-    if not len(entry) in (4, 5):
+    if len(entry) not in (4, 5):
         _LOGGER.info("Malformed reply: %s", data)
         raise ValueError
 
@@ -67,19 +67,14 @@ def parse_discovery_packet(data):
     if not any(device in product for device in SUPPORTED_PRODUCTS):
         _LOGGER.info("Unsupported product %s", product)
         raise ValueError
-    elif (
-        product == "TellStickNet"
-        and int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION
-    ):
+    elif product == "TellStickNet" and int(firmware) < MIN_TELLSTICKNET_FIRMWARE_VERSION:
         _LOGGER.info("Unsupported firmware version: %s", firmware)
         raise ValueError
     else:
         return mac, product, firmware
 
 
-async def discover(
-    ip=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT, discover_all=False
-):
+async def discover(ip=DISCOVERY_ADDRESS, timeout=DISCOVERY_TIMEOUT, discover_all=False):
     """Scan network for Tellstick Net devices"""
     _LOGGER.info("Discovering tellstick devices ...")
     try:
@@ -107,7 +102,7 @@ async def discover(
                     yield (address, mac)
                     if not discover_all:
                         return
-                except asyncio.TimeoutError:
+                except TimeoutError:
                     _LOGGER.debug("Discovery timeout")
                     break
                 except ValueError:
@@ -126,16 +121,14 @@ async def mock():
             data, address = sock.recvfrom(1024)
             if data == DISCOVERY_PAYLOAD:
                 _LOGGER.info("Got discovery request, replying")
-                response = "%s:MAC:CODE:%d" % (
-                    "TellStickNet",
-                    MIN_TELLSTICKNET_FIRMWARE_VERSION,
-                )
+                response = f"TellStickNet:MAC:CODE:{MIN_TELLSTICKNET_FIRMWARE_VERSION:d}"
                 await sock_sendto(sock, response.encode("ascii"), address)
 
 
 async def loopover(agen):
     async for h in agen:
         pprint(h)
+
 
 if __name__ == "__main__":
     from sys import argv

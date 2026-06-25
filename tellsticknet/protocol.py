@@ -16,8 +16,8 @@ TAG_SEP = ord(":")
 CMD_DELAY = "P"
 CMD_REP = "R"
 
-CMD_REPEAT_RF_TIMES = 4 #Number of packets the Tellstick Net will send
-CMD_REPEAT_RF_DELAY = 10 #Delay between packets in milliseconds
+CMD_REPEAT_RF_TIMES = 4  # Number of packets the Tellstick Net will send
+CMD_REPEAT_RF_DELAY = 10  # Delay between packets in milliseconds
 
 
 def _expect(condition):
@@ -117,7 +117,7 @@ def _encode_dict(d):
     )
 
 
-def _encode_list(l):
+def _encode_list(lst):
     """https://developer.telldus.com/doxygen/html/TellStickNet.html"""
     raise NotImplementedError("Encode for List type missing")
 
@@ -281,11 +281,7 @@ def _fixup(d):
     >>> _fixup(dict(a=1, _b=2)) == {'a': 1, 'b': 2}
     True
     """
-    return (
-        {(k[1:] if k.startswith("_") else k): v for k, v in d.items()}
-        if d
-        else None
-    )
+    return {(k[1:] if k.startswith("_") else k): v for k, v in d.items()} if d else None
 
 
 def _decode(**packet):
@@ -295,7 +291,7 @@ def _decode(**packet):
 
     protocol = packet["protocol"]
     try:
-        modname = "tellsticknet.protocols.%s" % protocol
+        modname = f"tellsticknet.protocols.{protocol}"
         import importlib
 
         module = importlib.import_module(modname)
@@ -309,17 +305,11 @@ def _decode(**packet):
             if isinstance(data, dict):
                 # convert data={temp=42, humidity=38} to
                 # data=[{name=temp, value=42},{name=humidity, valye=38}]
-                packet["data"] = [
-                    dict(name=name, value=value)
-                    for name, value in data.items()
-                ]
+                packet["data"] = [dict(name=name, value=value) for name, value in data.items()]
             return packet
         raise NotImplementedError
     except ImportError:
-        SRC_URL = (
-            "https://github.com/telldus/telldus/"
-            "tree/master/telldus-core/service"
-        )
+        SRC_URL = "https://github.com/telldus/telldus/tree/master/telldus-core/service"
         _LOGGER.exception(
             "Can not decode protocol %s, packet <%s> "
             "Missing or broken _decode in %s "
@@ -395,18 +385,14 @@ A:fineoffset4:datai488029FF9Ass"
 
 def get_protocol(protocol):
     try:
-        modname = "tellsticknet.protocols.%s" % protocol
+        modname = f"tellsticknet.protocols.{protocol}"
         import importlib
 
         module = importlib.import_module(modname)
         return module
     except ImportError:
-        SRC_URL = (
-            "https://github.com/telldus/telldus/"
-            "tree/master/telldus-core/service"
-        )
+        SRC_URL = "https://github.com/telldus/telldus/tree/master/telldus-core/service"
         _LOGGER.exception(
-            f"Can not decode protocol {protocol}"
-            f"Check {SRC_URL} for protocol implementation"
+            f"Can not decode protocol {protocol}Check {SRC_URL} for protocol implementation"
         )
         raise

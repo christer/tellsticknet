@@ -2,12 +2,8 @@ IMAGE=molobrakos/tellsticknet
 
 default: check
 
-format: white
-
-white: black
-
-black:
-	white setup.py tellsticknet
+format:
+	ruff format tellsticknet setup.py pyproject.toml
 
 lint:
 	tox -e lint
