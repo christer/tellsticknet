@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta:__legacy__"
+requires = ["uv_build>=0.11.24,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "tellsticknet"
@@ -23,9 +23,6 @@ dependencies = [
     "libnacl",
 ]
 
-[project.urls]
-Homepage = "https://github.com/molobrakos/tellsticknet"
-
 [project.scripts]
 tellsticknet = "tellsticknet.__main__:app_main"
 
@@ -41,3 +38,7 @@ select = ["E", "F", "UP"]
 
 [tool.ruff.format]
 quote-style = "preserve"
+
+[tool.uv.build-backend]
+module-name = "tellsticknet"
+module-root = ""

@@ -1,8 +1,0 @@
-language: python
-python:
-  - "3.14"
-env:
-  - TOXENV=py314
-  - TOXENV=lint
-install: pip install tox
-script: tox

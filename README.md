@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/molobrakos/tellsticknet.svg?branch=master)](https://travis-ci.org/molobrakos/tellsticknet)
+> **Fork** of [molobrakos/tellsticknet](https://github.com/molobrakos/tellsticknet).
+> Intended for personal use — only tested with a narrow set of hardware and
+> use cases. Modernized with help of AI/opencode.
 
 Interface with a Tellstick Net device on the local network bypassing the Telldus Live cloud service (events are still passed through the Telldus Live cloud service).
 
@@ -70,5 +72,5 @@ Archive all packets, one file per day
 
 Start MQTT gateway, forwarding all sensor readings to a MQTT server (where Home Assistant can be a subscriber), also receive any commands from the server (e.g. from Home Assistant)
 ```bash
-> ./script/tellsticknet mqtt -vv
+> tellsticknet mqtt -vv
 ```

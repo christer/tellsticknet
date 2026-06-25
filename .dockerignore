@@ -1,6 +1,7 @@
 *
 !pyproject.toml
 !uv.lock
+!README.md
 !tellsticknet
 **/__pycache__
 **/*~

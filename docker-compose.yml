@@ -7,7 +7,7 @@ services:
     build:
       context: .
     container_name: tellstick
-    image: molobrakos/tellsticknet
+    image: tellsticknet
     restart: unless-stopped
     ports:
       - "30303:30303/udp"

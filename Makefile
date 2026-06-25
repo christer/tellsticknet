@@ -1,9 +1,9 @@
-IMAGE=molobrakos/tellsticknet
+IMAGE=tellsticknet
 
 default: check
 
 format:
-	ruff format tellsticknet setup.py pyproject.toml
+	ruff format tellsticknet pyproject.toml
 
 lint:
 	tox -e lint
@@ -21,14 +21,6 @@ clean:
 	rm -rf .cache
 	rm -f *~
 	rm -f .*~
-
-pypi:
-	rm -f dist/*.tar.gz
-	python3 setup.py sdist
-	twine upload dist/*.tar.gz
-
-release:
-	git diff-index --quiet HEAD -- && make check && bumpversion patch && git push --tags && git push && make pypi
 
 docker-build:
 	docker build -t $(IMAGE) .
