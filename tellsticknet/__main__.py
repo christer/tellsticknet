@@ -47,7 +47,7 @@ DATEFMT = "%y-%m-%d %H:%M.%S"
 LOG_LEVEL = logging.DEBUG
 _LOGGER = logging.getLogger(__name__)
 
-_ = version_info >= (3, 7) or exit("Python 3.7 required")
+_ = version_info >= (3, 14) or exit("Python 3.14 required")
 
 
 def parse_isoformat(s):
@@ -85,16 +85,14 @@ def parse_stdin():
 def prepend_timestamp(line):
     """Add ISO 8601 timestamp to line"""
     timestamp = datetime.now().replace(microsecond=0).isoformat()
-    return "{} {}".format(timestamp, line)
+    return f"{timestamp} {line}"
 
 
 async def print_event_stream(controller, raw=False):
     """Print event stream"""
 
     if raw:
-        stream = (
-            prepend_timestamp(packet) async for packet in controller.packets()
-        )
+        stream = (prepend_timestamp(packet) async for packet in controller.packets())
     else:
         stream = (to_json(event) async for event in controller.events())
 
@@ -102,7 +100,7 @@ async def print_event_stream(controller, raw=False):
         print(packet)
         try:
             stdout.flush()
-        except IOError:
+        except OSError:
             # broken pipe
             pass
 
@@ -123,7 +121,7 @@ def read_config():
             _LOGGER.debug("checking for config file %s", config)
             with open(config) as config:
                 return list(load_yaml(config))
-        except (IOError, OSError):
+        except OSError:
             continue
     return {}
 
@@ -210,9 +208,7 @@ async def main(args):
         unit = args["<unit>"]
 
         if name:
-            devices = [
-                e for e in config if e["name"].lower().startswith(name.lower())
-            ]
+            devices = [e for e in config if e["name"].lower().startswith(name.lower())]
             if not devices:
                 exit(f"Device with name {name} not found")
         elif protocol and model and house and unit:
@@ -225,10 +221,7 @@ async def main(args):
 
         _LOGGER.debug("Waiting for tasks to finish")
         await asyncio.gather(
-            *[
-                controller.execute(device, method, param=param)
-                for device in devices
-            ]
+            *[controller.execute(device, method, param=param) for device in devices]
         )
 
 
@@ -245,14 +238,10 @@ def app_main():
     try:
         import coloredlogs
 
-        coloredlogs.install(
-            level=log_level, stream=stderr, datefmt=DATEFMT, fmt=LOGFMT
-        )
+        coloredlogs.install(level=log_level, stream=stderr, datefmt=DATEFMT, fmt=LOGFMT)
     except ImportError:
         _LOGGER.debug("no colored logs. pip install coloredlogs?")
-        logging.basicConfig(
-            level=log_level, stream=stderr, datefmt=DATEFMT, format=LOGFMT
-        )
+        logging.basicConfig(level=log_level, stream=stderr, datefmt=DATEFMT, format=LOGFMT)
 
     logging.captureWarnings(debug)
 

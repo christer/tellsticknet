@@ -8,10 +8,13 @@ def decode(packet):
     45.0
     """
 
-    if int(packet["model"], 16) == 0x1a2d:
+    model = packet["model"]
+    model = int(model, 16) if isinstance(model, str) else int(model)
+
+    if model == 0x1a2d:
         return decode1A2D(packet)
 
-    if int(packet["model"], 16) == 0xf824:
+    if model == 0xf824:
         return decodeF824(packet)
 
     raise NotImplementedError(
