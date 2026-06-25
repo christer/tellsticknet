@@ -417,12 +417,12 @@ class Device:
         kwargs = {}
         if message_expiry_interval is not None:
             kwargs["message_expiry_interval"] = message_expiry_interval
-        await self.mqtt.publish(topic, payload.encode("utf-8"), retain=retain, **kwargs)
+        self.mqtt.publish(topic, payload.encode("utf-8"), retain=retain, **kwargs)
         _LOGGER.debug(f"Published on {topic}: {payload}")
 
     async def subscribe_to(self, topic):
         _LOGGER.debug("Subscribing to %s", topic)
-        await self.mqtt.subscribe(topic, qos=1)
+        self.mqtt.subscribe(topic, qos=1)
         _LOGGER.debug("Subscribed to %s", topic)
         Device.subscriptions[topic] = self
 
