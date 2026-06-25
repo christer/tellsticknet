@@ -1,30 +1,7 @@
 #!/usr/bin/env python3
-"""
-Interact with Tellstick Net device on local network
+"""Interact with Tellstick Net device on local network."""
 
-Usage:
-  tellsticknet (-h | --help)
-  tellsticknet --version
-  tellsticknet [-v|-vv] [options] discover
-  tellsticknet [-v|-vv] [options] listen [--raw]
-  tellsticknet [-v|-vv] [options] devices
-  tellsticknet [-v|-vv] [options] sensors
-  tellsticknet [-v|-vv] [options] send <name> <cmd> [<param>]
-  tellsticknet [-v|-vv] [options] send <protocol> <model> <house> <unit> <cmd>
-  tellsticknet [-v|-vv] [options] mqtt
-  tellsticknet [-v|-vv] [options] mock
-  tellsticknet [-v|-vv] [options] parse
-
-Options:
-  --ip <ip>             IP of Tellstick Net device
-  --raw                 Print raw packets instead of parsed data
-  -h --help             Show this message
-  -v,-vv                Increase verbosity
-  -d                    Debug
-  --version             Show version
-"""
-
-import docopt
+import argparse
 import logging
 import re
 from datetime import datetime
@@ -140,50 +117,48 @@ async def main(args):
     if loop.get_debug():
         poller()
 
-    if args["parse"] and not stdin.isatty():
+    cmd = args.command
+
+    if cmd == "parse" and not stdin.isatty():
         parse_stdin()
         exit()
-    elif args["mock"]:
+    elif cmd == "mock":
         from tellsticknet.discovery import mock
 
         await mock()
         exit()
-    elif args["devices"]:
+    elif cmd == "devices":
         for e in (e for e in read_config() if "sensorId" not in e):
             print("-", e["name"])
         exit()
-    elif args["sensors"]:
+    elif cmd == "sensors":
         for e in (e for e in read_config() if "sensorId" in e):
             print("-", e["name"])
         exit()
-
-    ip = args["--ip"]
-
-    if args["discover"]:
-        async for c in await discover(ip=ip, discover_all=True):
+    elif cmd == "discover":
+        async for c in await discover(ip=args.ip, discover_all=True):
             print(c)
         exit()
 
     config = read_config()
-
     from functools import partial
 
-    if args["mqtt"]:
+    if cmd == "mqtt":
         from tellsticknet.mqtt import run
 
-        await run(partial(discover, ip=ip), config)
+        await run(partial(discover, ip=args.ip), config)
         exit()
 
-    controller = await discover(ip=ip)
+    controller = await discover(ip=args.ip)
     if not controller:
         exit("No tellstick device found")
 
     _LOGGER.info("Found controller: %s", controller)
 
-    if args["listen"]:
-        await print_event_stream(controller, raw=args["--raw"])
-    elif args["send"]:
-        cmd = args["<cmd>"]
+    if cmd == "listen":
+        await print_event_stream(controller, raw=args.raw)
+    elif cmd == "send":
+        cmd = args.cmd
         METHODS = dict(
             on=const.TURNON,
             turnon=const.TURNON,
@@ -196,26 +171,19 @@ async def main(args):
         )
         method = METHODS.get(cmd.lower()) or exit("method not found")
 
-        param = args["<param>"]
+        param = args.param
 
         if method == const.DIM and not param:
             exit("dim level missing")
 
-        name = args["<name>"]
-        protocol = args["<protocol>"]
-        model = args["<model>"]
-        house = args["<house>"]
-        unit = args["<unit>"]
+        name = args.name
 
         if name:
             devices = [e for e in config if e["name"].lower().startswith(name.lower())]
             if not devices:
                 exit(f"Device with name {name} not found")
-        elif protocol and model and house and unit:
-            exit("Not implemented")
-
-        if not devices:
-            exit("No devices found")
+        else:
+            exit("Device name required")
 
         _LOGGER.info("Executing for %d devices", len(devices))
 
@@ -225,15 +193,45 @@ async def main(args):
         )
 
 
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="tellsticknet",
+        description="Interact with Tellstick Net device on local network",
+    )
+    parser.add_argument("--version", action="version", version=__version__)
+    parser.add_argument("-v", action="count", default=0, dest="verbose")
+    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("--ip", help="IP of Tellstick Net device")
+
+    sub = parser.add_subparsers(dest="command")
+
+    sub.add_parser("discover", help="Discover Tellstick Net devices")
+    sub.add_parser("devices", help="List configured command devices")
+    sub.add_parser("sensors", help="List configured sensors")
+    sub.add_parser("mqtt", help="Run MQTT bridge")
+    sub.add_parser("mock", help="Run mock Tellstick Net device")
+    sub.add_parser("parse", help="Parse protocol data from stdin")
+
+    p = sub.add_parser("listen", help="Listen for sensor events")
+    p.add_argument("--raw", action="store_true")
+
+    p = sub.add_parser("send", help="Send a command to a device")
+    p.add_argument("name", nargs="?", help="Device name")
+    p.add_argument("cmd", help="Command: on/off/up/down/stop/dim")
+    p.add_argument("param", nargs="?", help="Parameter (e.g. dim level)")
+
+    return parser
+
+
 def app_main():
-    args = docopt.docopt(__doc__, version=__version__)
+    parser = build_parser()
+    args = parser.parse_args()
 
-    debug = args["-d"]
-
+    debug = args.debug
     if debug:
         log_level = logging.DEBUG
     else:
-        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][args["-v"]]
+        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][min(args.verbose, 2)]
 
     try:
         import coloredlogs

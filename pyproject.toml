@@ -14,13 +14,9 @@ authors = [
 ]
 keywords = ["tellstick"]
 dependencies = [
-    "docopt",
-    "requests",
     "pyyaml>=6.0",
     "gmqtt",
-    "websockets",
     "coloredlogs",
-    "libnacl",
 ]
 
 [project.scripts]
