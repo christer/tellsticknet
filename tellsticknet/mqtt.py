@@ -130,7 +130,7 @@ def get_mqtt_url():
             protocol = "mqtt" if port == 1883 else "mqtts"
             _LOGGER.debug("MQTT credentials loaded from %s", f.name)
             return f"{protocol}://{username}:{password}@{host}:{port}"
-    except (OSError, KeyError):
+    except OSError, KeyError:
         return None
 
 
@@ -492,16 +492,18 @@ async def run(discover, config):
 
     connected = asyncio.Event()
 
-    @mqtt.on_connect
-    def _(client, flags, result, properties):
+    def on_connect(client, flags, result, properties):
         _LOGGER.info("Connected to MQTT server")
         connected.set()
 
-    @mqtt.on_message
-    async def _(client, topic, payload, qos, properties):
+    mqtt.on_connect = on_connect
+
+    async def on_message(client, topic, payload, qos, properties):
         payload = payload.decode("ascii")
         _LOGGER.debug("Got message on %s: %s", topic, payload)
         await Device.route_message(topic, payload)
+
+    mqtt.on_message = on_message
 
     loop = asyncio.get_event_loop()
 
