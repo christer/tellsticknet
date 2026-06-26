@@ -231,7 +231,7 @@ def app_main():
     if debug:
         log_level = logging.DEBUG
     else:
-        log_level = [logging.ERROR, logging.INFO, logging.DEBUG][min(args.verbose, 2)]
+        log_level = [logging.INFO, logging.DEBUG][min(args.verbose, 1)]
 
     try:
         import coloredlogs
