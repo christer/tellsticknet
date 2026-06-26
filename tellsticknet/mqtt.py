@@ -443,7 +443,9 @@ class Device:
         await self.subscribe()
 
     async def publish_availability(self):
-        await self.publish(self.availability_topic, STATE_ONLINE, retain=self.is_command)
+        await self.publish(
+            self.availability_topic, STATE_ONLINE, retain=True, message_expiry_interval=300
+        )
 
     def maybe_invert(self, state):
         if self.invert and state in [STATE_ON, STATE_OFF]:
@@ -461,7 +463,10 @@ class Device:
             _LOGGER.warning(f"No state available for {self}")
             return
         _LOGGER.debug(f"Publishing state for {self}: {state}")
-        await self.publish(self.state_topic, state, retain=self.is_command)
+        kwargs = {}
+        if not self.is_command:
+            kwargs["message_expiry_interval"] = 300
+        await self.publish(self.state_topic, state, retain=True, **kwargs)
 
     @property
     def unit(self):
