@@ -1,4 +1,4 @@
 #!/bin/sh
 # run all tests
 
-tox
+uv run --with tox tox

@@ -3,13 +3,13 @@ IMAGE=tellsticknet
 default: check
 
 format:
-	ruff format tellsticknet pyproject.toml
+	uv run --with ruff ruff format tellsticknet pyproject.toml
 
 lint:
-	tox -e lint
+	uv run --with tox tox -e lint
 
 test:
-	tox
+	uv run --with tox tox
 
 check: lint test
 

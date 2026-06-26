@@ -1,4 +1,4 @@
 #!/bin/sh
 # linting of all code
 
-tox -e lint
+uv run --with tox tox -e lint
