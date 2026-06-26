@@ -7,21 +7,16 @@
 - `- [-]` = **Paused Task** (Shelved midway through; paired with context notes)
 - `- [x]` = **Completed Task** (Kept in place to act as a rolling context bridge)
 
-## Urgent
+## Completed
 
-- [x] **Bootstrap task tracking system**: Create tasks.md, tasks-archive.md, AGENTS.md workflow section, and .opencode/commands/ from README-TASKS.md blueprint.
-  - **Jujutsu Tracking**: Completed on Change `uutlntnn`
-- [x] **Clean up stale uncommitted changes**: Remove Pipfile.lock_old, run script, ProtocolEverflourish.cpp, everflourish.py_encoder_impl. Keep pipenv, pyproject.toml, shell scripts, AGENTS.md.
-  - **Jujutsu Tracking**: Completed on Change `uutlntnn`
-
-## Backlog
-
-- [x] **Switch to uv + ruff**: Replace pipenv with uv, replace pylint/flake8/black/white with ruff.
-  - **Jujutsu Tracking**: Completed on Change `mnwnumzw` (combined commit)
-- [x] **Update Python version**: Bump base image and toolchain to 3.12.
-  - **Jujutsu Tracking**: Completed on Change `pzxxqvul`
-- [x] **Swap amqtt → gmqtt**: Rewrite mqtt.py for MQTT v5 with Message-Expiry-Interval.
-  - **Jujutsu Tracking**: Completed on Change `mnwnumzw`
-- [x] **Update deps**: Refresh all pinned deps to latest compatible versions.
-  - **Jujutsu Tracking**: Updated on Change `mnwnumzw` (uv lock --upgrade)
+- [x] **Replace docopt with argparse**: Rewrote CLI parsing using argparse with subparsers. Same interface, no dependency.
+  - **Jujutsu Tracking**: Completed on Change `znnyuwuv`
+- [x] **Remove dead deps**: Dropped docopt, requests, websockets, libnacl (7→3 runtime deps).
+  - **Jujutsu Tracking**: Completed on Change `znnyuwuv`
+- [x] **Fix scripts/Makefile for out-of-box use**: All scripts now use `uv run` / `uv run --with`, no pre-activated venv needed.
+  - **Jujutsu Tracking**: Completed on Change `mrwzvztx`
+- [x] **Pin Python 3.14**: Created `.python-version` pinned to 3.14, consistent with production.
+  - **Jujutsu Tracking**: Completed on Change `mrwzvztx`
+- [x] **Relax uv_build constraint**: Changed from `>=0.11.24,<0.12` to `>=0.11` for wider pip compatibility.
+  - **Jujutsu Tracking**: Completed on Change `mrwzvztx`
 

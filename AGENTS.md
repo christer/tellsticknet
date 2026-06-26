@@ -1,22 +1,24 @@
 # AGENTS.md
 
 ## Project
-Single-package Python CLI/library (`tellsticknet`) for Tellstick Net devices. Async I/O via `asyncio`, uses `docopt` for CLI.
+Single-package Python CLI/library (`tellsticknet`) for Tellstick Net devices. Async I/O via `asyncio`, CLI built with `argparse`.
+
+Use `uv run --with <tool>` or `uvx` to invoke dev tools without pre-activating the venv. Python version pinned to 3.14 via `.python-version`.
 
 ## Commands
 
 | command | what it does |
 |---|---|
-| `make check` | `lint && test` (sequential via `script/check`) |
-| `make lint` | `tox -e lint` |
-| `make test` | `tox` |
-| `make format` | `ruff format tellsticknet pyproject.toml` |
+| `make check` | `lint && test` (via Makefile targets) |
+| `make lint` | `uv run --with tox tox -e lint` |
+| `make test` | `uv run --with tox tox` |
+| `make format` | `uv run --with ruff ruff format tellsticknet pyproject.toml` |
 | `tox -e lint` | `ruff check ... && ruff format --check ...` |
 | `tox` | runs `py.test tellsticknet` with `--doctest-modules` (doctests in source are tested) |
 
 ## Testing quirks
 - Tests live in `tellsticknet/test_protocols.py` (pytest) **and** as doctests in `tellsticknet/protocol.py` — both run under `tox`.
-- `tox.ini` only defines env `py314`; CI runs on Python 3.14.
+- `tox.ini` only defines env `py314`; CI runs on Python 3.14 (via `.python-version`).
 
 ## Package structure
 - `tellsticknet/__main__.py` — CLI entrypoint. Commands: `discover`, `listen`, `send`, `mqtt`, `mock`, `parse`, `devices`, `sensors`.
@@ -28,6 +30,8 @@ Single-package Python CLI/library (`tellsticknet`) for Tellstick Net devices. As
 - Docker entrypoint is `python3 -m tellsticknet mqtt`; exposes UDP ports 30303 and 42314.
 - Uses `uv` for dependency management (`uv.lock`). Dependencies declared in `pyproject.toml` `[project]`.
 - Protocol implementations adapted from [telldus-core](https://github.com/telldus/telldus/tree/master/telldus-core/service). See `tellsticknet/test_protocols.py` for exact test vectors.
+- Python version pinned via `.python-version` (3.14). Run `uv run` or `uv run --with <tool>` to auto-use the correct Python.
+- Runtime deps: `pyyaml`, `gmqtt`, `coloredlogs` only. All others (`ruff`, `tox`) are ephemeral via `uv run --with`.
 
 ## Task Management Rules
 
@@ -82,6 +86,10 @@ jj restore <paths>   # discard uncommitted changes to specific files
 ### Current commit stack
 
 ```
+mrwzvztx  Relax uv_build constraint, pin Python 3.14, fix scripts
+znnyuwuv  Replace docopt with argparse, remove dead deps
+uqqoouqp  Remove await from gmqtt publish/subscribe calls
+ytqxovsq  Fix gmqtt callback registration: use assignment
 pyluqsns  Strip stale files, switch to uv_build
 mnwnumzw  Modernize toolchain: uv, ruff, gmqtt
 pzxxqvul  Update Python version to 3.14
